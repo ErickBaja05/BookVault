@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nuevo libro — BookVault</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body data-page="books-form">
+    <div class="app-shell">
+      <header class="mobile-topbar">
+        <a class="mobile-brand" href="/index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
+            </svg>
+          </span>
+          <span>BookVault</span>
+        </a>
+        <button type="button" id="menu-toggle" class="hamburger-btn" aria-controls="app-sidebar" aria-expanded="false" aria-label="Abrir menú de navegación">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
+        </button>
+      </header>
+
+      <div id="sidebar-backdrop" class="sidebar-backdrop" aria-hidden="true"></div>
+
+      <aside id="app-sidebar" class="sidebar" aria-label="Menú principal">
+        <div>
+          <a class="sidebar-brand-desktop" href="/index.html">
+            <span class="brand-mark" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
+              </svg>
+            </span>
+            <div>
+              <div class="sidebar-brand-title">BookVault</div>
+              <div class="sidebar-brand-sub">Gestión de biblioteca</div>
+            </div>
+          </a>
+
+          <nav class="sidebar-nav" aria-label="Navegación de módulos">
+            <p class="sidebar-section-label">Navegación</p>
+            <ul class="sidebar-menu">
+              <li>
+                <a class="sidebar-link" href="/index.html">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="3" y="3" width="7" height="9" />
+                    <rect x="14" y="3" width="7" height="5" />
+                    <rect x="14" y="12" width="7" height="9" />
+                    <rect x="3" y="16" width="7" height="5" />
+                  </svg>
+                  <span>Panel principal</span>
+                </a>
+              </li>
+              <li>
+                <a class="sidebar-link" href="/categorias.html">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+                    <line x1="7" y1="7" x2="7.01" y2="7" />
+                  </svg>
+                  <span>Categorías</span>
+                </a>
+              </li>
+              <li>
+                <a class="sidebar-link" href="/autores.html">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                  </svg>
+                  <span>Autores</span>
+                </a>
+              </li>
+              <li>
+                <a class="sidebar-link active" href="/libros.html" aria-current="page">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+                  </svg>
+                  <span>Libros</span>
+                </a>
+              </li>
+              <li>
+                <a class="sidebar-link" href="/clientes.html">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                  </svg>
+                  <span>Clientes</span>
+                </a>
+              </li>
+              <li>
+                <a class="sidebar-link" href="/prestamos.html">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M8 2v4" />
+                    <path d="M16 2v4" />
+                    <rect width="18" height="18" x="3" y="4" rx="2" />
+                    <path d="M3 10h18" />
+                    <path d="m9 16 2 2 4-4" />
+                  </svg>
+                  <span>Préstamos</span>
+                </a>
+              </li>
+            </ul>
+          </nav>
+        </div>
+
+        <footer class="sidebar-footer">
+          BookVault v1.0 &middot; Biblioteca Comunitaria
+        </footer>
+      </aside>
+
+      <main class="app-main">
+        <div class="app-content">
+          <nav class="breadcrumb" aria-label="Ruta de navegación">
+            <a href="/libros.html">Libros</a>
+            <span class="breadcrumb-sep" aria-hidden="true">/</span>
+            <span id="breadcrumb-current" aria-current="page">Nuevo libro</span>
+          </nav>
+
+          <header class="page-header">
+            <div class="page-header-copy">
+              <p class="page-eyebrow">Formulario de libro</p>
+              <h1 id="form-page-title" class="page-title">Nuevo libro</h1>
+              <p id="form-page-subtitle" class="page-subtitle">
+                Complete los datos bibliográficos, categoría, inventario y autores del ejemplar.
+              </p>
+            </div>
+            <div class="page-header-actions">
+              <a class="btn btn-outline" href="/libros.html">Volver al listado</a>
+            </div>
+          </header>
+
+          <div id="form-alert"></div>
+
+          <section class="card" aria-labelledby="form-card-heading">
+            <div class="card-header">
+              <h2 id="form-card-heading" class="card-title">Información del libro</h2>
+            </div>
+            <div class="card-body">
+              <form id="book-form" novalidate>
+                <div class="grid-12">
+                  <div class="col-md-5">
+                    <div class="form-group">
+                      <label class="form-label required" for="libro-isbn">ISBN</label>
+                      <input
+                        id="libro-isbn"
+                        name="isbn"
+                        type="text"
+                        class="form-control"
+                        required
+                        minlength="10"
+                        maxlength="20"
+                        autocomplete="off"
+                        placeholder="Ej. 978-84-376-0494-7"
+                        aria-describedby="libro-isbn-hint libro-isbn-error"
+                      />
+                      <span id="libro-isbn-hint" class="form-hint">Formato ISBN-10 o ISBN-13 (guiones opcionales).</span>
+                      <span id="libro-isbn-error" class="form-error" role="alert"></span>
+                    </div>
+                  </div>
+
+                  <div class="col-md-7">
+                    <div class="form-group">
+                      <label class="form-label required" for="libro-titulo">Título</label>
+                      <input
+                        id="libro-titulo"
+                        name="titulo"
+                        type="text"
+                        class="form-control"
+                        required
+                        minlength="1"
+                        maxlength="150"
+                        placeholder="Ej. Pedro Páramo"
+                        aria-describedby="libro-titulo-error"
+                      />
+                      <span id="libro-titulo-error" class="form-error" role="alert"></span>
+                    </div>
+                  </div>
+
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label class="form-label required" for="libro-categoria">Categoría principal</label>
+                      <select
+                        id="libro-categoria"
+                        name="cod_categoria"
+                        class="form-select"
+                        required
+                        aria-describedby="libro-categoria-error"
+                      >
+                        <option value="">Seleccione una categoría...</option>
+                      </select>
+                      <span id="libro-categoria-error" class="form-error" role="alert"></span>
+                    </div>
+                  </div>
+
+                  <div class="col-md-3">
+                    <div class="form-group">
+                      <label class="form-label required" for="libro-anio">Año de publicación</label>
+                      <input
+                        id="libro-anio"
+                        name="anio_publicacion"
+                        type="number"
+                        class="form-control"
+                        required
+                        min="1000"
+                        max="2026"
+                        step="1"
+                        inputmode="numeric"
+                        placeholder="Ej. 1967"
+                        aria-describedby="libro-anio-error"
+                      />
+                      <span id="libro-anio-error" class="form-error" role="alert"></span>
+                    </div>
+                  </div>
+
+                  <div class="col-md-3">
+                    <div class="form-group">
+                      <label class="form-label required" for="libro-cantidad">Cantidad total</label>
+                      <input
+                        id="libro-cantidad"
+                        name="cantidad_total"
+                        type="number"
+                        class="form-control"
+                        required
+                        min="1"
+                        max="9999"
+                        step="1"
+                        inputmode="numeric"
+                        placeholder="Ej. 3"
+                        aria-describedby="libro-cantidad-hint libro-cantidad-error"
+                      />
+                      <span id="libro-cantidad-hint" class="form-hint">Mínimo 1 ejemplar.</span>
+                      <span id="libro-cantidad-error" class="form-error" role="alert"></span>
+                    </div>
+                  </div>
+                </div>
+
+                <fieldset class="border-0 mt-4">
+                  <legend class="form-label required mb-2">Autores del libro (principal y coautores)</legend>
+                  <div class="authors-builder">
+                    <div id="authors-rows" class="d-flex flex-column gap-3"></div>
+                    <div class="d-flex justify-between items-center flex-wrap gap-2">
+                      <span class="form-hint">Agregue uno o más autores indicando su rol.</span>
+                      <button type="button" id="btn-add-author" class="btn btn-outline btn-sm">
+                        + Agregar otro autor
+                      </button>
+                    </div>
+                  </div>
+                  <span id="libro-autores-error" class="form-error mt-2" role="alert"></span>
+                </fieldset>
+
+                <div class="form-actions-bar">
+                  <a class="btn btn-outline" href="/libros.html">Volver al listado</a>
+                  <button type="submit" id="btn-submit" class="btn btn-primary">Guardar libro</button>
+                </div>
+              </form>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <script src="/js/app.js" defer></script>
+    <script src="/js/store.js" defer></script>
+    <script src="/js/pages/books.js" defer></script>
+  </body>
+</html>
