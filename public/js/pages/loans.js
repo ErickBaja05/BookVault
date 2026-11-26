@@ -1,9 +1,9 @@
 /* ==========================================================================
    Módulo Préstamos (consulta de activos e historial, registro de nuevo
-   préstamo y registro de devolución — sin edición ni eliminación)
+   préstamo y registro de devolución vía API REST — sin edición ni borrado)
    ========================================================================== */
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const store = window.BookVaultStore;
   const ui = window.BookVaultUI;
   const validation = window.BookVaultValidation;
@@ -18,66 +18,75 @@ document.addEventListener('DOMContentLoaded', () => {
     const clearBtn = document.getElementById('btn-clear-search');
     const tbody = document.getElementById('loans-tbody');
     const countEl = document.getElementById('results-count');
+    const flashContainer = document.getElementById('flash-container');
 
     const initialStatus = ui.getQueryParam('status');
     if (initialStatus && ['ACTIVE', 'RETURNED'].includes(initialStatus.toUpperCase())) {
       statusSelect.value = initialStatus.toUpperCase();
     }
 
-    function renderRows() {
-      const rows = store.listLoans({
-        q: searchInput.value.trim(),
-        status: statusSelect.value,
-      });
+    async function renderRows() {
+      try {
+        const rows = await store.listLoans({
+          q: searchInput.value.trim(),
+          status: statusSelect.value,
+        });
 
-      if (countEl) {
-        countEl.textContent = `${rows.length} ${rows.length === 1 ? 'préstamo' : 'préstamos'}`;
-      }
+        if (countEl) {
+          countEl.textContent = `${rows.length} ${rows.length === 1 ? 'préstamo' : 'préstamos'}`;
+        }
 
-      if (rows.length === 0) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="7">
-              <div class="empty-state">
-                <p class="empty-state-title">No se encontraron préstamos</p>
-                <p>Pruebe cambiando los filtros o registre un nuevo préstamo de ejemplar.</p>
-              </div>
-            </td>
-          </tr>
-        `;
-        return;
-      }
-
-      tbody.innerHTML = rows
-        .map((loan) => {
-          const isActive = loan.estado === 'ACTIVE';
-          const statusBadge = isActive
-            ? '<span class="badge badge-warning">Activo</span>'
-            : '<span class="badge badge-success">Devuelto</span>';
-
-          const actionCell = isActive
-            ? `<a class="btn btn-success btn-sm" href="/prestamo-devolver.html?id=${encodeURIComponent(loan.cod_prestamo)}">Registrar devolución</a>`
-            : `<span class="fs-xs text-muted">Entregado el ${ui.escapeHtml(ui.formatDate(loan.fecha_devolucion))}</span>`;
-
-          return `
+        if (rows.length === 0) {
+          tbody.innerHTML = `
             <tr>
-              <td><span class="mono-code">#${ui.escapeHtml(loan.cod_prestamo)}</span></td>
-              <td>
-                <div class="fw-semibold">${ui.escapeHtml(loan.libro_titulo)}</div>
-                <div class="fs-xs text-muted">${ui.escapeHtml(loan.isbn)}</div>
+              <td colspan="7">
+                <div class="empty-state">
+                  <p class="empty-state-title">No se encontraron préstamos</p>
+                  <p>Pruebe cambiando los filtros o registre un nuevo préstamo de ejemplar.</p>
+                </div>
               </td>
-              <td>
-                <div class="fw-semibold">${ui.escapeHtml(loan.cliente_nombre)}</div>
-                <div class="fs-xs text-muted">CI: ${ui.escapeHtml(loan.cedula_cliente)}</div>
-              </td>
-              <td>${ui.escapeHtml(ui.formatDate(loan.fecha_prestamo))}</td>
-              <td>${ui.escapeHtml(ui.formatDate(loan.fecha_limite))}</td>
-              <td>${statusBadge}</td>
-              <td>${actionCell}</td>
             </tr>
           `;
-        })
-        .join('');
+          return;
+        }
+
+        tbody.innerHTML = rows
+          .map((loan) => {
+            const isActive = loan.estado === 'ACTIVE';
+            const statusBadge = isActive
+              ? '<span class="badge badge-warning">Activo</span>'
+              : '<span class="badge badge-success">Devuelto</span>';
+
+            const actionCell = isActive
+              ? `<a class="btn btn-success btn-sm" href="/prestamo-devolver.html?id=${encodeURIComponent(loan.cod_prestamo)}">Registrar devolución</a>`
+              : `<span class="fs-xs text-muted">Entregado el ${ui.escapeHtml(ui.formatDate(loan.fecha_devolucion))}</span>`;
+
+            return `
+              <tr>
+                <td><span class="mono-code">#${ui.escapeHtml(loan.cod_prestamo)}</span></td>
+                <td>
+                  <div class="fw-semibold">${ui.escapeHtml(loan.libro_titulo)}</div>
+                  <div class="fs-xs text-muted">${ui.escapeHtml(loan.isbn)}</div>
+                </td>
+                <td>
+                  <div class="fw-semibold">${ui.escapeHtml(loan.cliente_nombre)}</div>
+                  <div class="fs-xs text-muted">CI: ${ui.escapeHtml(loan.cedula_cliente)}</div>
+                </td>
+                <td>${ui.escapeHtml(ui.formatDate(loan.fecha_prestamo))}</td>
+                <td>${ui.escapeHtml(ui.formatDate(loan.fecha_limite))}</td>
+                <td>${statusBadge}</td>
+                <td>${actionCell}</td>
+              </tr>
+            `;
+          })
+          .join('');
+      } catch (error) {
+        ui.showAlert(
+          flashContainer,
+          'danger',
+          ui.getErrorMessage(error, 'No se pudo cargar el listado de préstamos.'),
+        );
+      }
     }
 
     searchForm.addEventListener('submit', (event) => {
@@ -92,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
       searchInput.focus();
     });
 
-    renderRows();
+    await renderRows();
   }
 
   if (page === 'loans-form') {
@@ -101,22 +110,35 @@ document.addEventListener('DOMContentLoaded', () => {
     const clientSelect = document.getElementById('prestamo-cliente');
     const fechaPrestamoInput = document.getElementById('prestamo-fecha');
     const fechaLimiteInput = document.getElementById('prestamo-fecha-limite');
+    const alertBox = document.getElementById('form-alert');
+    const submitBtn = form.querySelector('button[type="submit"]');
 
-    const books = store.listBooks();
-    books.forEach((book) => {
-      const opt = document.createElement('option');
-      opt.value = book.isbn;
-      opt.textContent = `${book.titulo} (${book.isbn}) — ${book.copias_disponibles} disp.`;
-      bookSelect.appendChild(opt);
-    });
+    try {
+      const [books, clients] = await Promise.all([
+        store.listBooks(),
+        store.listClients(),
+      ]);
 
-    const clients = store.listClients();
-    clients.forEach((client) => {
-      const opt = document.createElement('option');
-      opt.value = client.cedula_cliente;
-      opt.textContent = `${client.nombre} — CI: ${client.cedula_cliente}`;
-      clientSelect.appendChild(opt);
-    });
+      books.forEach((book) => {
+        const opt = document.createElement('option');
+        opt.value = book.isbn;
+        opt.textContent = `${book.titulo} (${book.isbn}) — ${book.copias_disponibles} disp.`;
+        bookSelect.appendChild(opt);
+      });
+
+      clients.forEach((client) => {
+        const opt = document.createElement('option');
+        opt.value = client.cedula_cliente;
+        opt.textContent = `${client.nombre} — CI: ${client.cedula_cliente}`;
+        clientSelect.appendChild(opt);
+      });
+    } catch (error) {
+      ui.showAlert(
+        alertBox,
+        'danger',
+        ui.getErrorMessage(error, 'No se pudieron cargar libros y clientes.'),
+      );
+    }
 
     const today = ui.getTodayISO();
     fechaPrestamoInput.value = today;
@@ -173,26 +195,33 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         'prestamo-fecha-limite': validateFechaLimite,
       },
-      () => {
-        const created = store.createLoan({
-          isbn: bookSelect.value,
-          cedula_cliente: clientSelect.value,
-          fecha_prestamo: fechaPrestamoInput.value,
-          fecha_limite: fechaLimiteInput.value,
-        });
+      async () => {
+        ui.clearAlert(alertBox);
+        if (submitBtn) submitBtn.disabled = true;
 
-        ui.setFlash(
-          'success',
-          `Préstamo #${created.cod_prestamo} registrado correctamente (estado: Activo).`,
-        );
-        window.location.href = '/prestamos.html';
+        try {
+          const created = await store.createLoan({
+            isbn: bookSelect.value,
+            cedula_cliente: clientSelect.value,
+            fecha_prestamo: fechaPrestamoInput.value,
+            fecha_limite: fechaLimiteInput.value,
+          });
+
+          ui.setFlash(
+            'success',
+            `Préstamo #${created.cod_prestamo} registrado correctamente (estado: Activo).`,
+          );
+          window.location.href = '/prestamos.html';
+        } catch (error) {
+          ui.showAlert(alertBox, 'danger', ui.getErrorMessage(error));
+          if (submitBtn) submitBtn.disabled = false;
+        }
       },
     );
   }
 
   if (page === 'loans-return') {
     const id = ui.getQueryParam('id');
-    const loan = id ? store.getLoan(id) : null;
     const alertBox = document.getElementById('return-alert');
     const card = document.getElementById('return-card');
     const summaryEl = document.getElementById('return-summary');
@@ -201,8 +230,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const checkbox = document.getElementById('confirm-return');
     const submitBtn = document.getElementById('btn-confirm-return');
 
-    if (!loan) {
-      ui.showAlert(alertBox, 'danger', 'No se encontró el préstamo solicitado.');
+    if (!id) {
+      ui.showAlert(alertBox, 'danger', 'No se especificó el préstamo a devolver.');
+      card.classList.add('d-none');
+      return;
+    }
+
+    let loan;
+    try {
+      loan = await store.getLoan(id);
+    } catch (error) {
+      ui.showAlert(alertBox, 'danger', ui.getErrorMessage(error, 'Préstamo no encontrado.'));
       card.classList.add('d-none');
       return;
     }
@@ -275,13 +313,21 @@ document.addEventListener('DOMContentLoaded', () => {
           return '';
         },
       },
-      () => {
-        store.returnLoan(id, fechaDevInput.value);
-        ui.setFlash(
-          'success',
-          `Devolución del préstamo #${loan.cod_prestamo} registrada correctamente.`,
-        );
-        window.location.href = '/prestamos.html';
+      async () => {
+        ui.clearAlert(alertBox);
+        submitBtn.disabled = true;
+
+        try {
+          await store.returnLoan(id, fechaDevInput.value);
+          ui.setFlash(
+            'success',
+            `Devolución del préstamo #${loan.cod_prestamo} registrada correctamente.`,
+          );
+          window.location.href = '/prestamos.html';
+        } catch (error) {
+          ui.showAlert(alertBox, 'danger', ui.getErrorMessage(error));
+          submitBtn.disabled = !checkbox.checked;
+        }
       },
     );
   }

@@ -1,9 +1,9 @@
 /* ==========================================================================
    Módulo Libros (listado con filtros combinables, crear/editar con autoría
-   múltiple y confirmación de eliminación)
+   múltiple y confirmación de eliminación vía API REST)
    ========================================================================== */
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const store = window.BookVaultStore;
   const ui = window.BookVaultUI;
   const validation = window.BookVaultValidation;
@@ -20,86 +20,107 @@ document.addEventListener('DOMContentLoaded', () => {
     const clearBtn = document.getElementById('btn-clear-search');
     const tbody = document.getElementById('books-tbody');
     const countEl = document.getElementById('results-count');
+    const flashContainer = document.getElementById('flash-container');
 
-    const categories = store.listCategories();
-    categories.forEach((cat) => {
-      const opt = document.createElement('option');
-      opt.value = String(cat.cod_categoria);
-      opt.textContent = cat.nombre;
-      categorySelect.appendChild(opt);
-    });
+    try {
+      const [categories, authors] = await Promise.all([
+        store.listCategories(),
+        store.listAuthors(),
+      ]);
 
-    const authors = store.listAuthors();
-    authors.forEach((author) => {
-      const opt = document.createElement('option');
-      opt.value = String(author.cod_autor);
-      opt.textContent = author.nombre;
-      authorSelect.appendChild(opt);
-    });
-
-    function renderRows() {
-      const rows = store.listBooks({
-        q: searchInput.value.trim(),
-        category: categorySelect.value,
-        author: authorSelect.value,
-        available: availableCheckbox.checked,
+      categories.forEach((cat) => {
+        const opt = document.createElement('option');
+        opt.value = String(cat.cod_categoria);
+        opt.textContent = cat.nombre;
+        categorySelect.appendChild(opt);
       });
 
-      if (countEl) {
-        countEl.textContent = `${rows.length} ${rows.length === 1 ? 'libro' : 'libros'}`;
-      }
+      authors.forEach((author) => {
+        const opt = document.createElement('option');
+        opt.value = String(author.cod_autor);
+        opt.textContent = author.nombre;
+        authorSelect.appendChild(opt);
+      });
+    } catch (error) {
+      ui.showAlert(
+        flashContainer,
+        'danger',
+        ui.getErrorMessage(error, 'No se pudieron cargar los filtros de categorías y autores.'),
+      );
+    }
 
-      if (rows.length === 0) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="7">
-              <div class="empty-state">
-                <p class="empty-state-title">No se encontraron libros</p>
-                <p>Ajuste los filtros de búsqueda o registre un nuevo título en el catálogo.</p>
-              </div>
-            </td>
-          </tr>
-        `;
-        return;
-      }
+    async function renderRows() {
+      try {
+        const rows = await store.listBooks({
+          q: searchInput.value.trim(),
+          category: categorySelect.value,
+          author: authorSelect.value,
+          available: availableCheckbox.checked,
+        });
 
-      tbody.innerHTML = rows
-        .map((book) => {
-          const authorsHtml = book.autores_detalle
-            .map((a) => {
-              const roleBadge =
-                a.rol === 'COAUTOR'
-                  ? '<span class="badge badge-neutral">Coautor</span>'
-                  : '<span class="badge badge-warning">Principal</span>';
-              return `<div class="d-flex items-center gap-1 flex-wrap"><span>${ui.escapeHtml(a.nombre)}</span> ${roleBadge}</div>`;
-            })
-            .join('');
+        if (countEl) {
+          countEl.textContent = `${rows.length} ${rows.length === 1 ? 'libro' : 'libros'}`;
+        }
 
-          const stockClass =
-            book.copias_disponibles > 0 ? 'badge-success' : 'badge-danger';
-          const stockText =
-            book.copias_disponibles > 0
-              ? `${book.copias_disponibles} / ${book.cantidad_total} disp.`
-              : `0 / ${book.cantidad_total} agotado`;
-
-          return `
+        if (rows.length === 0) {
+          tbody.innerHTML = `
             <tr>
-              <td><span class="mono-code">${ui.escapeHtml(book.isbn)}</span></td>
-              <td class="fw-semibold">${ui.escapeHtml(book.titulo)}</td>
-              <td><span class="badge badge-primary">${ui.escapeHtml(book.categoria_nombre)}</span></td>
-              <td><div class="d-flex flex-column gap-1">${authorsHtml}</div></td>
-              <td>${ui.escapeHtml(book.anio_publicacion)}</td>
-              <td><span class="badge ${stockClass}">${ui.escapeHtml(stockText)}</span></td>
-              <td>
-                <div class="table-actions">
-                  <a class="btn btn-outline btn-sm" href="/libro-form.html?isbn=${encodeURIComponent(book.isbn)}">Editar</a>
-                  <a class="btn btn-danger-outline btn-sm" href="/libro-eliminar.html?isbn=${encodeURIComponent(book.isbn)}">Eliminar</a>
+              <td colspan="7">
+                <div class="empty-state">
+                  <p class="empty-state-title">No se encontraron libros</p>
+                  <p>Ajuste los filtros de búsqueda o registre un nuevo título en el catálogo.</p>
                 </div>
               </td>
             </tr>
           `;
-        })
-        .join('');
+          return;
+        }
+
+        tbody.innerHTML = rows
+          .map((book) => {
+            const authorsList = book.autores || [];
+            const authorsHtml = authorsList
+              .map((a) => {
+                const roleBadge =
+                  a.rol === 'COAUTOR'
+                    ? '<span class="badge badge-neutral">Coautor</span>'
+                    : '<span class="badge badge-warning">Principal</span>';
+                return `<div class="d-flex items-center gap-1 flex-wrap"><span>${ui.escapeHtml(a.nombre)}</span> ${roleBadge}</div>`;
+              })
+              .join('');
+
+            const stockClass =
+              book.copias_disponibles > 0 ? 'badge-success' : 'badge-danger';
+            const stockText =
+              book.copias_disponibles > 0
+                ? `${book.copias_disponibles} / ${book.cantidad_total} disp.`
+                : `0 / ${book.cantidad_total} agotado`;
+
+            return `
+              <tr>
+                <td><span class="mono-code">${ui.escapeHtml(book.isbn)}</span></td>
+                <td class="fw-semibold">${ui.escapeHtml(book.titulo)}</td>
+                <td><span class="badge badge-primary">${ui.escapeHtml(book.categoria_nombre)}</span></td>
+                <td><div class="d-flex flex-column gap-1">${authorsHtml}</div></td>
+                <td>${ui.escapeHtml(book.anio_publicacion)}</td>
+                <td><span class="badge ${stockClass}">${ui.escapeHtml(stockText)}</span></td>
+                <td>
+                  <div class="table-actions">
+                    <a class="btn btn-outline btn-sm" href="/libro-form.html?isbn=${encodeURIComponent(book.isbn)}">Editar</a>
+                    <a class="btn btn-danger-outline btn-sm" href="/libro-eliminar.html?isbn=${encodeURIComponent(book.isbn)}">Eliminar</a>
+                  </div>
+                </td>
+              </tr>
+            `;
+          })
+          .join('');
+      } catch (error) {
+        ui.showAlert(
+          flashContainer,
+          'danger',
+          ui.getErrorMessage(error, 'No se pudo cargar el listado de libros.'),
+        );
+      }
     }
 
     searchForm.addEventListener('submit', (event) => {
@@ -116,7 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
       searchInput.focus();
     });
 
-    renderRows();
+    await renderRows();
   }
 
   if (page === 'books-form') {
@@ -136,8 +157,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const authorsErrorEl = document.getElementById('libro-autores-error');
     const addAuthorBtn = document.getElementById('btn-add-author');
 
-    const categories = store.listCategories();
-    const authors = store.listAuthors();
+    const isbnParam = ui.getQueryParam('isbn');
+    const isEdit = Boolean(isbnParam);
+
+    let categories = [];
+    let authors = [];
+    let existing = null;
+
+    try {
+      const promises = [store.listCategories(), store.listAuthors()];
+      if (isEdit) promises.push(store.getBook(isbnParam));
+      const results = await Promise.all(promises);
+      categories = results[0];
+      authors = results[1];
+      if (isEdit) existing = results[2];
+    } catch (error) {
+      ui.showAlert(
+        alertBox,
+        'danger',
+        ui.getErrorMessage(error, 'No se pudieron cargar los datos del libro.'),
+      );
+      form.classList.add('d-none');
+      return;
+    }
 
     categories.forEach((cat) => {
       const opt = document.createElement('option');
@@ -145,16 +187,6 @@ document.addEventListener('DOMContentLoaded', () => {
       opt.textContent = cat.nombre;
       categoriaSelect.appendChild(opt);
     });
-
-    const isbnParam = ui.getQueryParam('isbn');
-    const isEdit = Boolean(isbnParam);
-    const existing = isEdit ? store.getBook(isbnParam) : null;
-
-    if (isEdit && !existing) {
-      ui.showAlert(alertBox, 'danger', 'No se encontró el libro solicitado para edición.');
-      form.classList.add('d-none');
-      return;
-    }
 
     function createAuthorRow(selectedAuthorId = '', selectedRole = 'PRINCIPAL') {
       const row = document.createElement('div');
@@ -252,7 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
       createAuthorRow('', defaultRole);
     });
 
-    if (isEdit) {
+    if (isEdit && existing) {
       document.title = 'Editar libro — BookVault';
       titleEl.textContent = 'Editar libro';
       subtitleEl.textContent = `Actualice los datos del libro con ISBN ${existing.isbn}.`;
@@ -324,38 +356,45 @@ document.addEventListener('DOMContentLoaded', () => {
           return '';
         },
       },
-      () => {
+      async () => {
         if (!validateAuthorsGroup()) {
           const firstSelect = authorsContainer.querySelector('.author-select');
           if (firstSelect) firstSelect.focus();
           return;
         }
 
-        const payload = {
-          isbn: isbnInput.value,
-          titulo: tituloInput.value,
-          cod_categoria: categoriaSelect.value,
-          anio_publicacion: anioInput.value,
-          cantidad_total: cantidadInput.value,
-          autores: readAuthorsFromUI(),
-        };
+        ui.clearAlert(alertBox);
+        submitBtn.disabled = true;
 
-        if (isEdit) {
-          store.updateBook(isbnParam, payload);
-          ui.setFlash('success', `Libro "${payload.titulo.trim()}" actualizado correctamente.`);
-        } else {
-          store.createBook(payload);
-          ui.setFlash('success', `Libro "${payload.titulo.trim()}" registrado correctamente.`);
+        try {
+          const payload = {
+            isbn: isbnInput.value,
+            titulo: tituloInput.value,
+            cod_categoria: categoriaSelect.value,
+            anio_publicacion: anioInput.value,
+            cantidad_total: cantidadInput.value,
+            autores: readAuthorsFromUI(),
+          };
+
+          if (isEdit) {
+            await store.updateBook(isbnParam, payload);
+            ui.setFlash('success', `Libro "${payload.titulo.trim()}" actualizado correctamente.`);
+          } else {
+            await store.createBook(payload);
+            ui.setFlash('success', `Libro "${payload.titulo.trim()}" registrado correctamente.`);
+          }
+
+          window.location.href = '/libros.html';
+        } catch (error) {
+          ui.showAlert(alertBox, 'danger', ui.getErrorMessage(error));
+          submitBtn.disabled = false;
         }
-
-        window.location.href = '/libros.html';
       },
     );
   }
 
   if (page === 'books-delete') {
     const isbn = ui.getQueryParam('isbn');
-    const item = isbn ? store.getBook(isbn) : null;
     const alertBox = document.getElementById('delete-alert');
     const card = document.getElementById('delete-card');
     const summaryEl = document.getElementById('delete-summary');
@@ -363,13 +402,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const checkbox = document.getElementById('confirm-delete');
     const submitBtn = document.getElementById('btn-confirm-delete');
 
-    if (!item) {
-      ui.showAlert(alertBox, 'danger', 'No se encontró el libro seleccionado.');
+    if (!isbn) {
+      ui.showAlert(alertBox, 'danger', 'No se especificó el libro a eliminar.');
       card.classList.add('d-none');
       return;
     }
 
-    const authorsText = item.autores_detalle
+    let item;
+    try {
+      item = await store.getBook(isbn);
+    } catch (error) {
+      ui.showAlert(alertBox, 'danger', ui.getErrorMessage(error, 'Libro no encontrado.'));
+      card.classList.add('d-none');
+      return;
+    }
+
+    const authorsText = (item.autores || [])
       .map((a) => `${a.nombre} (${a.rol === 'COAUTOR' ? 'Coautor' : 'Principal'})`)
       .join(', ');
 
@@ -417,10 +465,18 @@ document.addEventListener('DOMContentLoaded', () => {
           return '';
         },
       },
-      () => {
-        store.deleteBook(isbn);
-        ui.setFlash('warning', `Libro "${item.titulo}" eliminado del catálogo.`);
-        window.location.href = '/libros.html';
+      async () => {
+        ui.clearAlert(alertBox);
+        submitBtn.disabled = true;
+
+        try {
+          await store.deleteBook(isbn);
+          ui.setFlash('warning', `Libro "${item.titulo}" eliminado del catálogo.`);
+          window.location.href = '/libros.html';
+        } catch (error) {
+          ui.showAlert(alertBox, 'danger', ui.getErrorMessage(error));
+          submitBtn.disabled = !checkbox.checked;
+        }
       },
     );
   }
