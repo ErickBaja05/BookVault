@@ -1,16 +1,28 @@
 /* ==========================================================================
    BookVault Frontend Core (app.js)
-   - Helper base para futuras llamadas al API (/api)
+   - Cliente HTTP apiFetch hacia la API REST (/api/*)
    - Control del menú lateral / menú hamburguesa responsivo
    - Sistema de mensajes flash entre navegaciones
-   - Motor de validaciones de frontend (sin reglas de negocio)
+   - Motor de validaciones de frontend (formatos y protección al usuario)
    ========================================================================== */
 
 const API_BASE_URL = '/api';
 
+function buildQueryString(params = {}) {
+  const search = new window.URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '' || value === false) {
+      return;
+    }
+    search.set(key, String(value));
+  });
+  const encoded = search.toString();
+  return encoded ? `?${encoded}` : '';
+}
+
 /**
- * Helper base preparado para conectar el frontend con la API REST cuando
- * el backend esté implementado.
+ * Ejecuta una petición JSON contra la API REST de BookVault.
+ * Parsea los mensajes de error { error: { message } } del backend y maneja 204.
  */
 async function apiFetch(path, options = {}) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -22,11 +34,31 @@ async function apiFetch(path, options = {}) {
     },
   });
 
-  if (!response.ok) {
-    throw new Error(`API request failed with status ${response.status}`);
+  if (response.status === 204) {
+    return null;
   }
 
-  return response.json();
+  let data = null;
+  const contentType = response.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
+  }
+
+  if (!response.ok) {
+    const serverMessage =
+      data && data.error && data.error.message
+        ? data.error.message
+        : `Error de comunicación con el servidor (HTTP ${response.status})`;
+    const error = new Error(serverMessage);
+    error.status = response.status;
+    throw error;
+  }
+
+  return data;
 }
 
 const FLASH_STORAGE_KEY = 'bookvault_flash_message';
@@ -113,6 +145,12 @@ function showAlert(container, type, message) {
   }
 }
 
+function clearAlert(container) {
+  if (container) {
+    container.innerHTML = '';
+  }
+}
+
 function renderFlash(containerId = 'flash-container') {
   const container = document.getElementById(containerId);
   if (!container) return;
@@ -120,6 +158,13 @@ function renderFlash(containerId = 'flash-container') {
   if (flash) {
     showAlert(container, flash.type, flash.message);
   }
+}
+
+function getErrorMessage(error, fallback = 'Ocurrió un error al procesar la solicitud.') {
+  if (error && error.message) {
+    return error.message;
+  }
+  return fallback;
 }
 
 /* --------------------------------------------------------------------------
@@ -256,7 +301,7 @@ function bindFormValidation(form, fieldValidators, onValidSubmit) {
     });
   });
 
-  form.addEventListener('submit', (event) => {
+  form.addEventListener('submit', async (event) => {
     event.preventDefault();
 
     let firstInvalid = null;
@@ -278,7 +323,7 @@ function bindFormValidation(form, fieldValidators, onValidSubmit) {
       return;
     }
 
-    onValidSubmit(event);
+    await onValidSubmit(event);
   });
 }
 
@@ -349,7 +394,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderFlash();
 });
 
-window.BookVaultApi = { apiFetch };
+window.BookVaultApi = { apiFetch, buildQueryString };
 window.BookVaultUI = {
   escapeHtml,
   getQueryParam,
@@ -358,7 +403,9 @@ window.BookVaultUI = {
   formatDate,
   setFlash,
   showAlert,
+  clearAlert,
   renderFlash,
+  getErrorMessage,
 };
 window.BookVaultValidation = {
   setFieldError,

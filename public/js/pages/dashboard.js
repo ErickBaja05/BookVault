@@ -2,11 +2,10 @@
    Panel Principal (index.html)
    ========================================================================== */
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const store = window.BookVaultStore;
-  if (!store) return;
-
-  const stats = store.getStats();
+  const ui = window.BookVaultUI;
+  if (!store || !ui) return;
 
   const booksEl = document.getElementById('stat-books');
   const booksMetaEl = document.getElementById('stat-books-meta');
@@ -14,19 +13,30 @@ document.addEventListener('DOMContentLoaded', () => {
   const loansMetaEl = document.getElementById('stat-loans-meta');
   const clientsEl = document.getElementById('stat-clients');
   const clientsMetaEl = document.getElementById('stat-clients-meta');
+  const alertBox = document.getElementById('dashboard-alert');
 
-  if (booksEl) booksEl.textContent = String(stats.booksCount);
-  if (booksMetaEl) {
-    booksMetaEl.textContent = `${stats.availableCopies} de ${stats.totalCopies} ejemplares disponibles`;
-  }
+  try {
+    const stats = await store.getStats();
 
-  if (loansEl) loansEl.textContent = String(stats.activeLoans);
-  if (loansMetaEl) {
-    loansMetaEl.textContent = `${stats.returnedLoans} préstamos devueltos en historial`;
-  }
+    if (booksEl) booksEl.textContent = String(stats.booksCount);
+    if (booksMetaEl) {
+      booksMetaEl.textContent = `${stats.availableCopies} de ${stats.totalCopies} ejemplares disponibles`;
+    }
 
-  if (clientsEl) clientsEl.textContent = String(stats.clientsCount);
-  if (clientsMetaEl) {
-    clientsMetaEl.textContent = 'Lectores habilitados en la biblioteca';
+    if (loansEl) loansEl.textContent = String(stats.activeLoans);
+    if (loansMetaEl) {
+      loansMetaEl.textContent = `${stats.returnedLoans} préstamos devueltos en historial`;
+    }
+
+    if (clientsEl) clientsEl.textContent = String(stats.clientsCount);
+    if (clientsMetaEl) {
+      clientsMetaEl.textContent = 'Lectores habilitados en la biblioteca';
+    }
+  } catch (error) {
+    ui.showAlert(
+      alertBox,
+      'danger',
+      ui.getErrorMessage(error, 'No se pudo cargar el resumen de la biblioteca.'),
+    );
   }
 });

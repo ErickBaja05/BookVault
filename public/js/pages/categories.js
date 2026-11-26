@@ -1,8 +1,8 @@
 /* ==========================================================================
-   Módulo Categorías (listado, formulario crear/editar y eliminación)
+   Módulo Categorías (listado, formulario crear/editar y eliminación vía API)
    ========================================================================== */
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const store = window.BookVaultStore;
   const ui = window.BookVaultUI;
   const validation = window.BookVaultValidation;
@@ -16,45 +16,54 @@ document.addEventListener('DOMContentLoaded', () => {
     const clearBtn = document.getElementById('btn-clear-search');
     const tbody = document.getElementById('categories-tbody');
     const countEl = document.getElementById('results-count');
+    const flashContainer = document.getElementById('flash-container');
 
-    function renderRows(query = '') {
-      const rows = store.listCategories(query);
-      if (countEl) {
-        countEl.textContent = `${rows.length} ${rows.length === 1 ? 'categoría' : 'categorías'}`;
+    async function renderRows(query = '') {
+      try {
+        const rows = await store.listCategories(query);
+        if (countEl) {
+          countEl.textContent = `${rows.length} ${rows.length === 1 ? 'categoría' : 'categorías'}`;
+        }
+
+        if (rows.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="5">
+                <div class="empty-state">
+                  <p class="empty-state-title">No se encontraron categorías</p>
+                  <p>Intente con otro término de búsqueda o registre una nueva categoría.</p>
+                </div>
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        tbody.innerHTML = rows
+          .map(
+            (cat) => `
+            <tr>
+              <td><span class="mono-code">#${ui.escapeHtml(cat.cod_categoria)}</span></td>
+              <td class="fw-semibold">${ui.escapeHtml(cat.nombre)}</td>
+              <td class="text-muted">${ui.escapeHtml(cat.descripcion || 'Sin descripción')}</td>
+              <td><span class="badge badge-primary">${ui.escapeHtml(cat.libros_count)} libros</span></td>
+              <td>
+                <div class="table-actions">
+                  <a class="btn btn-outline btn-sm" href="/categoria-form.html?id=${encodeURIComponent(cat.cod_categoria)}">Editar</a>
+                  <a class="btn btn-danger-outline btn-sm" href="/categoria-eliminar.html?id=${encodeURIComponent(cat.cod_categoria)}">Eliminar</a>
+                </div>
+              </td>
+            </tr>
+          `,
+          )
+          .join('');
+      } catch (error) {
+        ui.showAlert(
+          flashContainer,
+          'danger',
+          ui.getErrorMessage(error, 'No se pudo cargar el listado de categorías.'),
+        );
       }
-
-      if (rows.length === 0) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="5">
-              <div class="empty-state">
-                <p class="empty-state-title">No se encontraron categorías</p>
-                <p>Intente con otro término de búsqueda o registre una nueva categoría.</p>
-              </div>
-            </td>
-          </tr>
-        `;
-        return;
-      }
-
-      tbody.innerHTML = rows
-        .map(
-          (cat) => `
-          <tr>
-            <td><span class="mono-code">#${ui.escapeHtml(cat.cod_categoria)}</span></td>
-            <td class="fw-semibold">${ui.escapeHtml(cat.nombre)}</td>
-            <td class="text-muted">${ui.escapeHtml(cat.descripcion || 'Sin descripción')}</td>
-            <td><span class="badge badge-primary">${ui.escapeHtml(cat.libros_count)} libros</span></td>
-            <td>
-              <div class="table-actions">
-                <a class="btn btn-outline btn-sm" href="/categoria-form.html?id=${encodeURIComponent(cat.cod_categoria)}">Editar</a>
-                <a class="btn btn-danger-outline btn-sm" href="/categoria-eliminar.html?id=${encodeURIComponent(cat.cod_categoria)}">Eliminar</a>
-              </div>
-            </td>
-          </tr>
-        `,
-        )
-        .join('');
     }
 
     searchForm.addEventListener('submit', (event) => {
@@ -68,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
       searchInput.focus();
     });
 
-    renderRows('');
+    await renderRows('');
   }
 
   if (page === 'categories-form') {
@@ -84,22 +93,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const id = ui.getQueryParam('id');
     const isEdit = Boolean(id);
-    const existing = isEdit ? store.getCategory(id) : null;
-
-    if (isEdit && !existing) {
-      ui.showAlert(alertBox, 'danger', 'No se encontró la categoría solicitada para edición.');
-      form.classList.add('d-none');
-      return;
-    }
 
     if (isEdit) {
-      document.title = 'Editar categoría — BookVault';
-      titleEl.textContent = 'Editar categoría';
-      subtitleEl.textContent = `Actualice los datos de la categoría #${existing.cod_categoria}.`;
-      breadcrumbEl.textContent = 'Editar categoría';
-      submitBtn.textContent = 'Guardar cambios';
-      nameInput.value = existing.nombre;
-      descInput.value = existing.descripcion || '';
+      try {
+        const existing = await store.getCategory(id);
+        document.title = 'Editar categoría — BookVault';
+        titleEl.textContent = 'Editar categoría';
+        subtitleEl.textContent = `Actualice los datos de la categoría #${existing.cod_categoria}.`;
+        breadcrumbEl.textContent = 'Editar categoría';
+        submitBtn.textContent = 'Guardar cambios';
+        nameInput.value = existing.nombre;
+        descInput.value = existing.descripcion || '';
+      } catch (error) {
+        ui.showAlert(
+          alertBox,
+          'danger',
+          ui.getErrorMessage(error, 'No se encontró la categoría solicitada para edición.'),
+        );
+        form.classList.add('d-none');
+        return;
+      }
     }
 
     function updateCounter() {
@@ -131,28 +144,35 @@ document.addEventListener('DOMContentLoaded', () => {
           return '';
         },
       },
-      () => {
-        const payload = {
-          nombre: nameInput.value,
-          descripcion: descInput.value,
-        };
+      async () => {
+        ui.clearAlert(alertBox);
+        submitBtn.disabled = true;
 
-        if (isEdit) {
-          store.updateCategory(id, payload);
-          ui.setFlash('success', `Categoría "${payload.nombre.trim()}" actualizada correctamente.`);
-        } else {
-          store.createCategory(payload);
-          ui.setFlash('success', `Categoría "${payload.nombre.trim()}" registrada correctamente.`);
+        try {
+          const payload = {
+            nombre: nameInput.value,
+            descripcion: descInput.value,
+          };
+
+          if (isEdit) {
+            await store.updateCategory(id, payload);
+            ui.setFlash('success', `Categoría "${payload.nombre.trim()}" actualizada correctamente.`);
+          } else {
+            await store.createCategory(payload);
+            ui.setFlash('success', `Categoría "${payload.nombre.trim()}" registrada correctamente.`);
+          }
+
+          window.location.href = '/categorias.html';
+        } catch (error) {
+          ui.showAlert(alertBox, 'danger', ui.getErrorMessage(error));
+          submitBtn.disabled = false;
         }
-
-        window.location.href = '/categorias.html';
       },
     );
   }
 
   if (page === 'categories-delete') {
     const id = ui.getQueryParam('id');
-    const item = id ? store.getCategory(id) : null;
     const alertBox = document.getElementById('delete-alert');
     const card = document.getElementById('delete-card');
     const summaryEl = document.getElementById('delete-summary');
@@ -160,8 +180,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const checkbox = document.getElementById('confirm-delete');
     const submitBtn = document.getElementById('btn-confirm-delete');
 
-    if (!item) {
-      ui.showAlert(alertBox, 'danger', 'No se encontró la categoría seleccionada.');
+    if (!id) {
+      ui.showAlert(alertBox, 'danger', 'No se especificó la categoría a eliminar.');
+      card.classList.add('d-none');
+      return;
+    }
+
+    let item;
+    try {
+      item = await store.getCategory(id);
+    } catch (error) {
+      ui.showAlert(alertBox, 'danger', ui.getErrorMessage(error, 'Categoría no encontrada.'));
       card.classList.add('d-none');
       return;
     }
@@ -202,10 +231,18 @@ document.addEventListener('DOMContentLoaded', () => {
           return '';
         },
       },
-      () => {
-        store.deleteCategory(id);
-        ui.setFlash('warning', `Categoría "${item.nombre}" eliminada del listado.`);
-        window.location.href = '/categorias.html';
+      async () => {
+        ui.clearAlert(alertBox);
+        submitBtn.disabled = true;
+
+        try {
+          await store.deleteCategory(id);
+          ui.setFlash('warning', `Categoría "${item.nombre}" eliminada del listado.`);
+          window.location.href = '/categorias.html';
+        } catch (error) {
+          ui.showAlert(alertBox, 'danger', ui.getErrorMessage(error));
+          submitBtn.disabled = !checkbox.checked;
+        }
       },
     );
   }

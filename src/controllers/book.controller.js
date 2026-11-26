@@ -1,8 +1,14 @@
 const service = require('../services/book.service');
 
 module.exports = {
-  async list(_req, res) {
-    res.json(await service.findAll());
+  async list(req, res) {
+    const filters = {
+      q: req.query.q,
+      category: req.query.category ?? req.query.cod_categoria,
+      author: req.query.author ?? req.query.cod_autor,
+      available: req.query.available ?? req.query.solo_disponibles,
+    };
+    res.json(await service.findAll(filters));
   },
   async getById(req, res) {
     res.json(await service.findById(req.params.id));

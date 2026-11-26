@@ -1,37 +1,51 @@
 const { EVENT_MANAGER_URL, EVENT_SOURCE } = require('../config/env');
 
+const EVENT_TIMEOUT_MS = 3000;
+
 /**
- * Send a best-effort event to the Event Manager.
+ * Envía un evento de auditoría al Event Manager externo de forma resiliente
+ * (RN-11 y RN-12). Nunca lanza excepciones para no interrumpir la operación
+ * principal de la biblioteca.
  *
  * @param {Object} event
- * @param {string} event.entity Entity that emitted the event.
- * @param {'QUERY' | 'CREATE' | 'UPDATE' | 'DELETE'} event.action Event action.
- * @param {string} event.title Short event title.
- * @param {string} event.description Event description.
- * @param {Object} [event.payload={}] Event-specific data.
- * @returns {Promise<boolean>} Whether the Event Manager accepted the event.
+ * @param {'category' | 'author' | 'book' | 'client' | 'loan'} event.entity
+ * @param {'QUERY' | 'CREATE' | 'UPDATE' | 'DELETE'} event.action
+ * @param {string} event.title
+ * @param {string} event.description
+ * @param {Object} [event.payload={}]
+ * @returns {Promise<boolean>}
  */
 async function sendEvent({ entity, action, title, description, payload = {} }) {
-  try {
-    const response = await fetch(
-      `${EVENT_MANAGER_URL.replace(/\/+$/, '')}/events`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          source: EVENT_SOURCE,
-          entity,
-          action,
-          title,
-          description,
-          payload,
-        }),
-        signal: AbortSignal.timeout(3000),
-      },
-    );
+  const endpoint = `${EVENT_MANAGER_URL.replace(/\/+$/, '')}/events`;
 
-    return response.ok;
-  } catch {
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        source: EVENT_SOURCE,
+        entity,
+        action,
+        title,
+        description,
+        payload,
+      }),
+      signal: AbortSignal.timeout(EVENT_TIMEOUT_MS),
+    });
+
+    if (!response.ok) {
+      console.warn(
+        `[EventClient] Event Manager respondió HTTP ${response.status} para ${entity}.${action} (${endpoint})`,
+      );
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    const reason = error && error.message ? error.message : String(error);
+    console.warn(
+      `[EventClient] No se pudo notificar ${entity}.${action} a ${endpoint}: ${reason}`,
+    );
     return false;
   }
 }

@@ -1,8 +1,8 @@
 /* ==========================================================================
-   Módulo Autores (listado, formulario crear/editar y eliminación)
+   Módulo Autores (listado, formulario crear/editar y eliminación vía API)
    ========================================================================== */
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const store = window.BookVaultStore;
   const ui = window.BookVaultUI;
   const validation = window.BookVaultValidation;
@@ -16,45 +16,54 @@ document.addEventListener('DOMContentLoaded', () => {
     const clearBtn = document.getElementById('btn-clear-search');
     const tbody = document.getElementById('authors-tbody');
     const countEl = document.getElementById('results-count');
+    const flashContainer = document.getElementById('flash-container');
 
-    function renderRows(query = '') {
-      const rows = store.listAuthors(query);
-      if (countEl) {
-        countEl.textContent = `${rows.length} ${rows.length === 1 ? 'autor' : 'autores'}`;
+    async function renderRows(query = '') {
+      try {
+        const rows = await store.listAuthors(query);
+        if (countEl) {
+          countEl.textContent = `${rows.length} ${rows.length === 1 ? 'autor' : 'autores'}`;
+        }
+
+        if (rows.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="5">
+                <div class="empty-state">
+                  <p class="empty-state-title">No se encontraron autores</p>
+                  <p>Pruebe con otro criterio de búsqueda o registre un nuevo autor.</p>
+                </div>
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        tbody.innerHTML = rows
+          .map(
+            (author) => `
+            <tr>
+              <td><span class="mono-code">#${ui.escapeHtml(author.cod_autor)}</span></td>
+              <td class="fw-semibold">${ui.escapeHtml(author.nombre)}</td>
+              <td class="text-muted">${ui.escapeHtml(author.nacionalidad || 'No registrada')}</td>
+              <td><span class="badge badge-warning">${ui.escapeHtml(author.libros_count)} obras</span></td>
+              <td>
+                <div class="table-actions">
+                  <a class="btn btn-outline btn-sm" href="/autor-form.html?id=${encodeURIComponent(author.cod_autor)}">Editar</a>
+                  <a class="btn btn-danger-outline btn-sm" href="/autor-eliminar.html?id=${encodeURIComponent(author.cod_autor)}">Eliminar</a>
+                </div>
+              </td>
+            </tr>
+          `,
+          )
+          .join('');
+      } catch (error) {
+        ui.showAlert(
+          flashContainer,
+          'danger',
+          ui.getErrorMessage(error, 'No se pudo cargar el listado de autores.'),
+        );
       }
-
-      if (rows.length === 0) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="5">
-              <div class="empty-state">
-                <p class="empty-state-title">No se encontraron autores</p>
-                <p>Pruebe con otro criterio de búsqueda o registre un nuevo autor.</p>
-              </div>
-            </td>
-          </tr>
-        `;
-        return;
-      }
-
-      tbody.innerHTML = rows
-        .map(
-          (author) => `
-          <tr>
-            <td><span class="mono-code">#${ui.escapeHtml(author.cod_autor)}</span></td>
-            <td class="fw-semibold">${ui.escapeHtml(author.nombre)}</td>
-            <td class="text-muted">${ui.escapeHtml(author.nacionalidad || 'No registrada')}</td>
-            <td><span class="badge badge-warning">${ui.escapeHtml(author.libros_count)} obras</span></td>
-            <td>
-              <div class="table-actions">
-                <a class="btn btn-outline btn-sm" href="/autor-form.html?id=${encodeURIComponent(author.cod_autor)}">Editar</a>
-                <a class="btn btn-danger-outline btn-sm" href="/autor-eliminar.html?id=${encodeURIComponent(author.cod_autor)}">Eliminar</a>
-              </div>
-            </td>
-          </tr>
-        `,
-        )
-        .join('');
     }
 
     searchForm.addEventListener('submit', (event) => {
@@ -68,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
       searchInput.focus();
     });
 
-    renderRows('');
+    await renderRows('');
   }
 
   if (page === 'authors-form') {
@@ -83,22 +92,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const id = ui.getQueryParam('id');
     const isEdit = Boolean(id);
-    const existing = isEdit ? store.getAuthor(id) : null;
-
-    if (isEdit && !existing) {
-      ui.showAlert(alertBox, 'danger', 'No se encontró el autor solicitado para edición.');
-      form.classList.add('d-none');
-      return;
-    }
 
     if (isEdit) {
-      document.title = 'Editar autor — BookVault';
-      titleEl.textContent = 'Editar autor';
-      subtitleEl.textContent = `Actualice los datos del autor #${existing.cod_autor}.`;
-      breadcrumbEl.textContent = 'Editar autor';
-      submitBtn.textContent = 'Guardar cambios';
-      nameInput.value = existing.nombre;
-      nationalityInput.value = existing.nacionalidad || '';
+      try {
+        const existing = await store.getAuthor(id);
+        document.title = 'Editar autor — BookVault';
+        titleEl.textContent = 'Editar autor';
+        subtitleEl.textContent = `Actualice los datos del autor #${existing.cod_autor}.`;
+        breadcrumbEl.textContent = 'Editar autor';
+        submitBtn.textContent = 'Guardar cambios';
+        nameInput.value = existing.nombre;
+        nationalityInput.value = existing.nacionalidad || '';
+      } catch (error) {
+        ui.showAlert(
+          alertBox,
+          'danger',
+          ui.getErrorMessage(error, 'No se encontró el autor solicitado para edición.'),
+        );
+        form.classList.add('d-none');
+        return;
+      }
     }
 
     const { Validators } = validation;
@@ -130,28 +143,35 @@ document.addEventListener('DOMContentLoaded', () => {
           return '';
         },
       },
-      () => {
-        const payload = {
-          nombre: nameInput.value,
-          nacionalidad: nationalityInput.value,
-        };
+      async () => {
+        ui.clearAlert(alertBox);
+        submitBtn.disabled = true;
 
-        if (isEdit) {
-          store.updateAuthor(id, payload);
-          ui.setFlash('success', `Autor "${payload.nombre.trim()}" actualizado correctamente.`);
-        } else {
-          store.createAuthor(payload);
-          ui.setFlash('success', `Autor "${payload.nombre.trim()}" registrado correctamente.`);
+        try {
+          const payload = {
+            nombre: nameInput.value,
+            nacionalidad: nationalityInput.value,
+          };
+
+          if (isEdit) {
+            await store.updateAuthor(id, payload);
+            ui.setFlash('success', `Autor "${payload.nombre.trim()}" actualizado correctamente.`);
+          } else {
+            await store.createAuthor(payload);
+            ui.setFlash('success', `Autor "${payload.nombre.trim()}" registrado correctamente.`);
+          }
+
+          window.location.href = '/autores.html';
+        } catch (error) {
+          ui.showAlert(alertBox, 'danger', ui.getErrorMessage(error));
+          submitBtn.disabled = false;
         }
-
-        window.location.href = '/autores.html';
       },
     );
   }
 
   if (page === 'authors-delete') {
     const id = ui.getQueryParam('id');
-    const item = id ? store.getAuthor(id) : null;
     const alertBox = document.getElementById('delete-alert');
     const card = document.getElementById('delete-card');
     const summaryEl = document.getElementById('delete-summary');
@@ -159,8 +179,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const checkbox = document.getElementById('confirm-delete');
     const submitBtn = document.getElementById('btn-confirm-delete');
 
-    if (!item) {
-      ui.showAlert(alertBox, 'danger', 'No se encontró el autor seleccionado.');
+    if (!id) {
+      ui.showAlert(alertBox, 'danger', 'No se especificó el autor a eliminar.');
+      card.classList.add('d-none');
+      return;
+    }
+
+    let item;
+    try {
+      item = await store.getAuthor(id);
+    } catch (error) {
+      ui.showAlert(alertBox, 'danger', ui.getErrorMessage(error, 'Autor no encontrado.'));
       card.classList.add('d-none');
       return;
     }
@@ -201,10 +230,18 @@ document.addEventListener('DOMContentLoaded', () => {
           return '';
         },
       },
-      () => {
-        store.deleteAuthor(id);
-        ui.setFlash('warning', `Autor "${item.nombre}" eliminado del listado.`);
-        window.location.href = '/autores.html';
+      async () => {
+        ui.clearAlert(alertBox);
+        submitBtn.disabled = true;
+
+        try {
+          await store.deleteAuthor(id);
+          ui.setFlash('warning', `Autor "${item.nombre}" eliminado del listado.`);
+          window.location.href = '/autores.html';
+        } catch (error) {
+          ui.showAlert(alertBox, 'danger', ui.getErrorMessage(error));
+          submitBtn.disabled = !checkbox.checked;
+        }
       },
     );
   }
