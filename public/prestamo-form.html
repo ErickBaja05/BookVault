@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nuevo préstamo — BookVault</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body data-page="loans-form">
+    <div class="app-shell">
+      <header class="mobile-topbar">
+        <a class="mobile-brand" href="/index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
+            </svg>
+          </span>
+          <span>BookVault</span>
+        </a>
+        <button type="button" id="menu-toggle" class="hamburger-btn" aria-controls="app-sidebar" aria-expanded="false" aria-label="Abrir menú de navegación">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
+        </button>
+      </header>
+
+      <div id="sidebar-backdrop" class="sidebar-backdrop" aria-hidden="true"></div>
+
+      <aside id="app-sidebar" class="sidebar" aria-label="Menú principal">
+        <div>
+          <a class="sidebar-brand-desktop" href="/index.html">
+            <span class="brand-mark" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
+              </svg>
+            </span>
+            <div>
+              <div class="sidebar-brand-title">BookVault</div>
+              <div class="sidebar-brand-sub">Gestión de biblioteca</div>
+            </div>
+          </a>
+
+          <nav class="sidebar-nav" aria-label="Navegación de módulos">
+            <p class="sidebar-section-label">Navegación</p>
+            <ul class="sidebar-menu">
+              <li>
+                <a class="sidebar-link" href="/index.html">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="3" y="3" width="7" height="9" />
+                    <rect x="14" y="3" width="7" height="5" />
+                    <rect x="14" y="12" width="7" height="9" />
+                    <rect x="3" y="16" width="7" height="5" />
+                  </svg>
+                  <span>Panel principal</span>
+                </a>
+              </li>
+              <li>
+                <a class="sidebar-link" href="/categorias.html">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+                    <line x1="7" y1="7" x2="7.01" y2="7" />
+                  </svg>
+                  <span>Categorías</span>
+                </a>
+              </li>
+              <li>
+                <a class="sidebar-link" href="/autores.html">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                  </svg>
+                  <span>Autores</span>
+                </a>
+              </li>
+              <li>
+                <a class="sidebar-link" href="/libros.html">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+                  </svg>
+                  <span>Libros</span>
+                </a>
+              </li>
+              <li>
+                <a class="sidebar-link" href="/clientes.html">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                  </svg>
+                  <span>Clientes</span>
+                </a>
+              </li>
+              <li>
+                <a class="sidebar-link active" href="/prestamos.html" aria-current="page">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M8 2v4" />
+                    <path d="M16 2v4" />
+                    <rect width="18" height="18" x="3" y="4" rx="2" />
+                    <path d="M3 10h18" />
+                    <path d="m9 16 2 2 4-4" />
+                  </svg>
+                  <span>Préstamos</span>
+                </a>
+              </li>
+            </ul>
+          </nav>
+        </div>
+
+        <footer class="sidebar-footer">
+          BookVault v1.0 &middot; Biblioteca Comunitaria
+        </footer>
+      </aside>
+
+      <main class="app-main">
+        <div class="app-content">
+          <nav class="breadcrumb" aria-label="Ruta de navegación">
+            <a href="/prestamos.html">Préstamos</a>
+            <span class="breadcrumb-sep" aria-hidden="true">/</span>
+            <span aria-current="page">Nuevo préstamo</span>
+          </nav>
+
+          <header class="page-header">
+            <div class="page-header-copy">
+              <p class="page-eyebrow">Registro de salida</p>
+              <h1 class="page-title">Nuevo préstamo</h1>
+              <p class="page-subtitle">
+                Registre la entrega de un ejemplar físico a un cliente de la biblioteca.
+              </p>
+            </div>
+            <div class="page-header-actions">
+              <a class="btn btn-outline" href="/prestamos.html">Volver al listado</a>
+            </div>
+          </header>
+
+          <section class="card" aria-labelledby="form-card-heading">
+            <div class="card-header">
+              <h2 id="form-card-heading" class="card-title">Datos del préstamo (1 ejemplar)</h2>
+            </div>
+            <div class="card-body">
+              <div class="alert alert-info mb-6" role="note">
+                <span>
+                  Cada préstamo corresponde a un ejemplar individual y se registra en estado
+                  <strong>Activo</strong>. Los préstamos no se editan ni eliminan; al recibir el libro se
+                  registra su devolución.
+                </span>
+              </div>
+
+              <form id="loan-form" novalidate>
+                <div class="grid-12">
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label class="form-label required" for="prestamo-libro">Libro</label>
+                      <select
+                        id="prestamo-libro"
+                        name="isbn"
+                        class="form-select"
+                        required
+                        aria-describedby="prestamo-libro-error"
+                      >
+                        <option value="">Seleccione un libro...</option>
+                      </select>
+                      <span id="prestamo-libro-error" class="form-error" role="alert"></span>
+                    </div>
+                  </div>
+
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label class="form-label required" for="prestamo-cliente">Cliente (Lector)</label>
+                      <select
+                        id="prestamo-cliente"
+                        name="cedula_cliente"
+                        class="form-select"
+                        required
+                        aria-describedby="prestamo-cliente-error"
+                      >
+                        <option value="">Seleccione un cliente...</option>
+                      </select>
+                      <span id="prestamo-cliente-error" class="form-error" role="alert"></span>
+                    </div>
+                  </div>
+
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label class="form-label required" for="prestamo-fecha">Fecha de préstamo</label>
+                      <input
+                        id="prestamo-fecha"
+                        name="fecha_prestamo"
+                        type="date"
+                        class="form-control"
+                        required
+                        aria-describedby="prestamo-fecha-error"
+                      />
+                      <span id="prestamo-fecha-error" class="form-error" role="alert"></span>
+                    </div>
+                  </div>
+
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label class="form-label required" for="prestamo-fecha-limite">Fecha límite de devolución</label>
+                      <input
+                        id="prestamo-fecha-limite"
+                        name="fecha_limite"
+                        type="date"
+                        class="form-control"
+                        required
+                        aria-describedby="prestamo-fecha-limite-hint prestamo-fecha-limite-error"
+                      />
+                      <span id="prestamo-fecha-limite-hint" class="form-hint">Debe ser igual o posterior a la fecha de préstamo.</span>
+                      <span id="prestamo-fecha-limite-error" class="form-error" role="alert"></span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-actions-bar">
+                  <a class="btn btn-outline" href="/prestamos.html">Volver al listado</a>
+                  <button type="submit" class="btn btn-primary">Registrar préstamo</button>
+                </div>
+              </form>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <script src="/js/app.js" defer></script>
+    <script src="/js/store.js" defer></script>
+    <script src="/js/pages/loans.js" defer></script>
+  </body>
+</html>
