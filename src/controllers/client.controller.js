@@ -1,8 +1,9 @@
 const service = require('../services/client.service');
 
 module.exports = {
-  async list(_req, res) {
-    res.json(await service.findAll());
+  async list(req, res) {
+    const filters = { q: req.query.q };
+    res.json(await service.findAll(filters));
   },
   async getById(req, res) {
     res.json(await service.findById(req.params.id));
